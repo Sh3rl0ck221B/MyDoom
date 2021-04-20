@@ -42,6 +42,7 @@ public class PlayerMovement : MonoBehaviour
     private bool canClimb;
     public LayerMask climbable;
     private float speedUpDown = 3.2f;
+    private bool isJumping;
     
     //StateHandling
     private State state;
@@ -67,7 +68,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            controller.enabled = true;
+            state = State.Normal;
         }
         
         
@@ -90,31 +91,46 @@ public class PlayerMovement : MonoBehaviour
 
     private void Climbing()
     {
-        controller.enabled = false;
-        if (Input.GetKey("w"))
+        if (canClimb)
         {
-            transform.position += Vector3.up / speedUpDown;
+            isJumping = false;
+            if (Input.GetKey("w"))
+            {
+                transform.position += Vector3.up / speedUpDown;
+            }
+
+            if (Input.GetKey("s"))
+            {
+                transform.position += Vector3.down / speedUpDown;
+            }
+            
+
+            if (Input.GetButtonDown("Jump"))
+            {
+                isJumping = true;
+            }
+        }
+        
+        if(!checkEnvironment(ground) && isJumping)
+        {
+            velocity.z = -Mathf.Sqrt(10 * -2f * gravity);
+            controller.Move(velocity * Time.deltaTime);
         }
 
-        if (Input.GetKey("s"))
+        if (checkEnvironment(ground))
         {
-            transform.position += Vector3.down / speedUpDown;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            controller.enabled = true;
-            StartCoroutine(Dash(false));
+            state = State.Normal;
         }
     }
 
     private void HandleCharacterMovement()
     {
         isGrounded = checkEnvironment(ground);
-
+        
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
+            velocity.z = 0;
         }
         
         Move();
@@ -208,7 +224,7 @@ public class PlayerMovement : MonoBehaviour
         
         controller.Move(hookshotDir * hookShotSpped * 2f * Time.deltaTime);
         
-        float reachedHookshotPosition = 1f;
+        float reachedHookshotPosition = 1.5f;
         if (Vector3.Distance(transform.position, hookShotPosition) < reachedHookshotPosition)
         {
             state = State.Normal;
