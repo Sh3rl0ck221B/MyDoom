@@ -113,13 +113,14 @@ public class PlayerMovement : MonoBehaviour
         
         if(!checkEnvironment(ground) && isJumping)
         {
-            velocity.z = -Mathf.Sqrt(10 * -2f * gravity);
+            velocity = -transform.forward * Mathf.Sqrt(5 * -2f * gravity);
             controller.Move(velocity * Time.deltaTime);
         }
 
         if (checkEnvironment(ground))
         {
             state = State.Normal;
+            isJumping = false;
         }
     }
 
@@ -129,8 +130,8 @@ public class PlayerMovement : MonoBehaviour
         
         if (isGrounded && velocity.y < 0)
         {
+            velocity = Vector3.zero;
             velocity.y = -2f;
-            velocity.z = 0;
         }
         
         Move();
