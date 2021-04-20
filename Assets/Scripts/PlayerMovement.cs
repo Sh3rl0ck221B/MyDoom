@@ -35,7 +35,7 @@ public class PlayerMovement : MonoBehaviour
     //Grabbling hook
     public Camera cam;
     public Transform debugHitTransform;
-    public Vector3 hookShotPosition;
+    private Vector3 hookShotPosition;
     private float velocityY;
 
     //Climb
@@ -65,14 +65,9 @@ public class PlayerMovement : MonoBehaviour
         if (canClimb)
         {
             state = State.Climbing;
-        }
-        else
-        {
-            state = State.Normal;
-        }
-        
-        
-        
+        }:
+
+
         switch (state)
         { 
             case State.Normal:
@@ -87,6 +82,8 @@ public class PlayerMovement : MonoBehaviour
                 HandleHookshotStart();
                 break;
         }
+        
+        Debug.Log(state);
     }
 
     private void Climbing()
@@ -104,7 +101,6 @@ public class PlayerMovement : MonoBehaviour
                 transform.position += Vector3.down / speedUpDown;
             }
             
-
             if (Input.GetButtonDown("Jump"))
             {
                 isJumping = true;
@@ -138,7 +134,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            Debug.Log("Jump was pressed");
             Jump(jumpHeight);
             doubleJump = true;
         }
@@ -156,30 +151,24 @@ public class PlayerMovement : MonoBehaviour
             Jump(jumpHeight * 2);
         }
 
-        velocity.y  += gravity * Time.deltaTime;
+        velocity.y += gravity * Time.deltaTime;
         
         controller.Move(velocity * Time.deltaTime);
 
         if (Input.GetMouseButtonDown(0))
         {
-            StartCoroutine(Dash(true));
+            StartCoroutine(Dash());
         }
     }
     
-    IEnumerator Dash(bool forward)
+    IEnumerator Dash()
     {
         float startTime = Time.time;
 
         while (Time.time < startTime + dashTime)
         {
-            if (forward)
-            {
-                controller.Move( transform.forward * dashSpeed * Time.deltaTime);
-            }
-            else
-            {
-                controller.Move( transform.forward * dashSpeed * Time.deltaTime);
-            }
+            controller.Move( transform.forward * dashSpeed * Time.deltaTime);
+            
             yield return null;
         }
     }
@@ -213,19 +202,24 @@ public class PlayerMovement : MonoBehaviour
                 debugHitTransform.position = raycastHit.point;
                 hookShotPosition = raycastHit.point;
                 state = State.HookshotFlyingPlayer;
+                
+                Debug.Log(state);
             };
         }
     }
 
     private void HandleHookShotMovement()
     {
+        Debug.Log("Movemovemove");
         Vector3 hookshotDir = (hookShotPosition - transform.position).normalized;
 
         float hookShotSpped = Mathf.Clamp(Vector3.Distance(transform.position, hookShotPosition), 10, 40);
+
+        Debug.Log(hookshotDir);
+        Debug.Log(hookShotSpped);
+        controller.Move(hookshotDir * hookShotSpped * 5f * Time.deltaTime);
         
-        controller.Move(hookshotDir * hookShotSpped * 2f * Time.deltaTime);
-        
-        float reachedHookshotPosition = 1.5f;
+        float reachedHookshotPosition = 1f;
         if (Vector3.Distance(transform.position, hookShotPosition) < reachedHookshotPosition)
         {
             state = State.Normal;
