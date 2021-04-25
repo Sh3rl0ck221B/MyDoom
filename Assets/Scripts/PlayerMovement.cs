@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : MonoBehaviourPun, IPunObservable
 {
     public CharacterController controller;
 
@@ -27,22 +28,33 @@ public class PlayerMovement : MonoBehaviour
     //Dash
     public float dashTime = 0.25f;
     public float dashSpeed = 20f;
-    private float startCoolDown;
 
     //Trampoline
     public LayerMask trampoline;
 
     //Grabbling hook
     public Camera cam;
-    public Transform debugHitTransform;
     private Vector3 hookShotPosition;
-    private float velocityY;
+    public Transform debugHitPosition;
 
     //Climb
     private bool canClimb;
     public LayerMask climbable;
     private float speedUpDown = 3.2f;
     private bool isJumping;
+    
+    //Visibility
+    public GameObject healthbar;
+    public GameObject glasses;
+    
+    //Shooting
+    private float health = 1f;
+    public GameObject bulletPrefab;
+    
+    //Respawn
+    public GameObject playerPrefab;
+    private GameManager manager;
+
     
     //StateHandling
     private State state;
@@ -53,74 +65,86 @@ public class PlayerMovement : MonoBehaviour
         Climbing
     }
 
-    void Awake()
+    void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
+
+        manager = GameObject.Find("GameManger").GetComponent<GameManager>();
+        
+        
+        if (photonView.IsMine)
+        {
+            
+        }
+        else
+        {
+            cam.enabled = false;
+            cam.gameObject.GetComponent<AudioListener>().enabled = false;
+            gameObject.GetComponent<PlayerMovement>().enabled = false;
+            gameObject.GetComponent<MouseLook>().enabled = false;
+        }
     }
 
     void Update()
     {
-        canClimb = checkEnvironment(climbable);
-
-        if (canClimb)
+        if (Input.GetKeyDown(KeyCode.K))
         {
-            state = State.Climbing;
-        }:
-
-
+            manager.Respawn();
+            PhotonNetwork.Destroy(gameObject);
+        }
+        
         switch (state)
         { 
             case State.Normal:
-                HandleCharacterMovement();
-                HandleHookshotStart();
+                CharacterMovement();
+                StartGrapplingGun();
+                StartClimbing();
+                Shoot();
                 break;
             case State.HookshotFlyingPlayer:
                 HandleHookShotMovement();
+                Shoot();
                 break;
             case State.Climbing:
                 Climbing();
-                HandleHookshotStart();
+                StartGrapplingGun();
+                Shoot();
                 break;
         }
-        
-        Debug.Log(state);
     }
-
-    private void Climbing()
+    
+    private void StartGrapplingGun()
     {
-        if (canClimb)
+        if (Input.GetKeyDown(KeyCode.E))
         {
-            isJumping = false;
-            if (Input.GetKey("w"))
+            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit raycastHit))
             {
-                transform.position += Vector3.up / speedUpDown;
-            }
-
-            if (Input.GetKey("s"))
-            {
-                transform.position += Vector3.down / speedUpDown;
-            }
-            
-            if (Input.GetButtonDown("Jump"))
-            {
-                isJumping = true;
-            }
+                hookShotPosition = raycastHit.point;
+                state = State.HookshotFlyingPlayer;
+            };
         }
+    }
+    
+    private void HandleHookShotMovement()
+    {
+        Vector3 direction = (hookShotPosition - transform.position).normalized;
+        float speed = Mathf.Clamp(Vector3.Distance(transform.position, hookShotPosition), 10, 40);
         
-        if(!checkEnvironment(ground) && isJumping)
-        {
-            velocity = -transform.forward * Mathf.Sqrt(5 * -2f * gravity);
-            controller.Move(velocity * Time.deltaTime);
-        }
+        controller.Move(direction * speed * 2f * Time.deltaTime);
 
-        if (checkEnvironment(ground))
+        if (Vector3.Distance(transform.position, hookShotPosition) < 1)
         {
             state = State.Normal;
-            isJumping = false;
         }
     }
-
-    private void HandleCharacterMovement()
+    
+    private bool checkEnvironment(int ground)
+    {
+        return Physics.CheckSphere(feet.position, distance, ground);
+    }
+    
+  
+    
+    private void CharacterMovement()
     {
         isGrounded = checkEnvironment(ground);
         
@@ -161,6 +185,125 @@ public class PlayerMovement : MonoBehaviour
         }
     }
     
+    private void Jump(float height)
+    {
+        velocity.y = Mathf.Sqrt(height * -2f * gravity);
+    }
+    
+    
+    private void Move()
+    {
+        float xInput = Input.GetAxis("Horizontal");
+        float zInput = Input.GetAxis("Vertical");
+        
+        move = transform.right * xInput + transform.forward * zInput;
+        
+        controller.Move(move * speed * Time.deltaTime);
+    }
+
+    private void Shoot()
+    {
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            GameObject bullet = PhotonNetwork.Instantiate(bulletPrefab.name, cam.transform.position + cam.transform.forward, Quaternion.identity,0);
+            bullet.GetComponent<Rigidbody>().AddForce(cam.transform.forward * 150, ForceMode.Impulse);
+        }
+    }
+    
+    void updateHealthBar()
+    {
+        Vector3 oldScale = healthbar.transform.localScale;
+        healthbar.transform.localScale = new Vector3(health, oldScale.y, oldScale.z);
+    }
+    
+    public void hit()
+    {
+        if (!photonView.IsMine)
+        {
+            return;
+        }
+        
+        health -= 0.2f;
+        if (health <= 0)
+        {
+            manager.Respawn();
+            PhotonNetwork.Destroy(photonView.gameObject);
+            health = 0f;
+            
+        }
+        updateHealthBar();
+    }
+    
+ 
+    
+    
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (stream.IsWriting)
+        {
+            stream.SendNext(health);
+        }
+        else
+        {
+            health = (float) stream.ReceiveNext();
+            updateHealthBar();
+        }
+    }
+
+    private void StartClimbing()
+    {
+        canClimb = checkEnvironment(climbable);
+
+        if (canClimb)
+        {
+            state = State.Climbing;
+        }
+    }
+
+    private void Climbing()
+    {
+        canClimb = checkEnvironment(climbable);
+        
+        if (canClimb)
+        {
+            isJumping = false;
+            if (Input.GetKey("w"))
+            {
+                transform.position += Vector3.up / speedUpDown;
+            }
+
+            if (Input.GetKey("s"))
+            {
+                transform.position += Vector3.down / speedUpDown;
+            }
+            
+            if (Input.GetButtonDown("Jump"))
+            {
+                isJumping = true;
+            }
+        }
+        else
+        {
+            if (state != State.HookshotFlyingPlayer)
+            {
+                state = State.Normal;
+            }
+        }
+        
+        if(!checkEnvironment(ground) && isJumping)
+        {
+            velocity = -transform.forward * Mathf.Sqrt(5 * -2f * gravity);
+            controller.Move(velocity * Time.deltaTime);
+        }
+
+        if (checkEnvironment(ground))
+        {
+            isJumping = false;
+        }
+    }
+
+  
+    
     IEnumerator Dash()
     {
         float startTime = Time.time;
@@ -173,64 +316,14 @@ public class PlayerMovement : MonoBehaviour
         }
     }
     
-    private void Jump(float height)
-    {
-        velocity.y = Mathf.Sqrt(height * -2f * gravity);
-    }
     
-    private void Move()
-    {
-        float xInput = Input.GetAxis("Horizontal");
-        float zInput = Input.GetAxis("Vertical");
-        
-        move = transform.right * xInput + transform.forward * zInput;
-        
-        controller.Move(move * speed * Time.deltaTime);
-    }
+   
 
-    private bool checkEnvironment(int ground)
-    {
-        return Physics.CheckSphere(feet.position, distance, ground);
-    }
+   
 
-    private void HandleHookshotStart()
-    {
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit raycastHit))
-            {
-                debugHitTransform.position = raycastHit.point;
-                hookShotPosition = raycastHit.point;
-                state = State.HookshotFlyingPlayer;
-                
-                Debug.Log(state);
-            };
-        }
-    }
+    
 
-    private void HandleHookShotMovement()
-    {
-        Debug.Log("Movemovemove");
-        Vector3 hookshotDir = (hookShotPosition - transform.position).normalized;
-
-        float hookShotSpped = Mathf.Clamp(Vector3.Distance(transform.position, hookShotPosition), 10, 40);
-
-        Debug.Log(hookshotDir);
-        Debug.Log(hookShotSpped);
-        controller.Move(hookshotDir * hookShotSpped * 5f * Time.deltaTime);
-        
-        float reachedHookshotPosition = 1f;
-        if (Vector3.Distance(transform.position, hookShotPosition) < reachedHookshotPosition)
-        {
-            state = State.Normal;
-        }
-
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            state = State.Normal;
-        }
-        
-    }
+   
     
 
 
