@@ -50,6 +50,9 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
     private float health = 1f;
     public GameObject bulletPrefab;
     
+    //Bomb
+    public GameObject bombPrefab;
+    
     //Respawn
     private GameManager manager;
 
@@ -97,6 +100,7 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
                 StartGrapplingGun();
                 StartClimbing();
                 Shoot();
+                Bomb();
                 break;
             case State.HookshotFlyingPlayer:
                 HandleHookShotMovement();
@@ -107,6 +111,16 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
                 StartGrapplingGun();
                 Shoot();
                 break;
+        }
+    }
+
+    private void Bomb()
+    {
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            GameObject bomb = Instantiate(bombPrefab, cam.transform.position, Quaternion.identity);
+            Rigidbody rigidbody = bomb.GetComponent<Rigidbody>();
+            rigidbody.AddForce(transform.forward * 1000);
         }
     }
     
