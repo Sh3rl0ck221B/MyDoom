@@ -52,6 +52,7 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
     
     //Bomb
     public GameObject bombPrefab;
+    public GameObject hand;
     
     //Respawn
     private GameManager manager;
@@ -81,7 +82,7 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
             cam.enabled = false;
             cam.gameObject.GetComponent<AudioListener>().enabled = false;
             gameObject.GetComponent<PlayerMovement>().enabled = false;
-            gameObject.GetComponent<MouseLook>().enabled = false;
+            cam.GetComponent<MouseLook>().enabled = false;
         }
     }
 
@@ -105,11 +106,13 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
             case State.HookshotFlyingPlayer:
                 HandleHookShotMovement();
                 Shoot();
+                Bomb();
                 break;
             case State.Climbing:
                 Climbing();
                 StartGrapplingGun();
                 Shoot();
+                Bomb();
                 break;
         }
     }
@@ -118,7 +121,7 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
     {
         if (Input.GetKeyDown(KeyCode.B))
         {
-            GameObject bomb = Instantiate(bombPrefab, cam.transform.position, Quaternion.identity);
+            GameObject bomb = PhotonNetwork.Instantiate(bombPrefab.name, hand.transform.position, Quaternion.identity, 0);
             Rigidbody rigidbody = bomb.GetComponent<Rigidbody>();
             rigidbody.AddForce(transform.forward * 1000);
         }
@@ -264,7 +267,7 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
 
     private void StartClimbing()
     {
-        canClimb = checkEnvironment(climbable);
+        canClimb = Physics.CheckSphere(hand.transform.position, distance, climbable);
 
         if (canClimb)
         {
