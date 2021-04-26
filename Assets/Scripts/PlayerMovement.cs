@@ -45,14 +45,12 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
     
     //Visibility
     public GameObject healthbar;
-    public GameObject glasses;
     
     //Shooting
     private float health = 1f;
     public GameObject bulletPrefab;
     
     //Respawn
-    public GameObject playerPrefab;
     private GameManager manager;
 
     
