@@ -109,7 +109,7 @@ GameObject:
   - component: {fileID: 4114848981856809513}
   m_Layer: 11
   m_Name: Hand
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -139,7 +139,7 @@ GameObject:
   - component: {fileID: 3668580176016018189}
   m_Layer: 11
   m_Name: Feet
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -169,7 +169,6 @@ GameObject:
   - component: {fileID: 3668580176570770292}
   - component: {fileID: 3668580176570770293}
   - component: {fileID: 3668580176570770298}
-  - component: {fileID: 3668580176570770299}
   - component: {fileID: 3668580176570770296}
   - component: {fileID: 3668580176570770297}
   - component: {fileID: 3668580176570770302}
@@ -247,20 +246,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!136 &3668580176570770299
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3668580176570770303}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.58642197
-  m_Height: 2.2182617
-  m_Direction: 1
-  m_Center: {x: 0.03327942, y: 0.02182579, z: 0.006450653}
 --- !u!114 &3668580176570770296
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -330,7 +315,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 512
   cam: {fileID: 6272168115544165683}
-  debugHitPosition: {fileID: 0}
+  debugHitPosition: {fileID: 2543970861539827098, guid: a9e9632fdffe743c4955c52281da7955,
+    type: 3}
   climbable:
     serializedVersion: 2
     m_Bits: 1024
@@ -352,7 +338,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 2
   m_Height: 2
-  m_Radius: 0.5
+  m_Radius: 2
   m_SlopeLimit: 70
   m_StepOffset: 1
   m_SkinWidth: 0.08
@@ -374,6 +360,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Layer
       value: 11
+      objectReference: {fileID: 0}
+    - target: {fileID: 557417141623954550, guid: 96e45e02a8f8a49aa953ef11596e849b,
+        type: 3}
+      propertyPath: m_TagString
+      value: Untagged
       objectReference: {fileID: 0}
     - target: {fileID: 7941599258306374702, guid: 96e45e02a8f8a49aa953ef11596e849b,
         type: 3}

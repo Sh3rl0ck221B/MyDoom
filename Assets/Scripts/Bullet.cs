@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
+using Photon.Realtime;
 using UnityEngine;
 
 public class Bullet : MonoBehaviourPun
@@ -11,13 +12,12 @@ public class Bullet : MonoBehaviourPun
         {
             return;
         }
+        
+        photonView.RPC(nameof(kill), RpcTarget.All);
 
-        if (collision.transform.CompareTag("Player"))
-        {
-            collision.gameObject.GetComponent<PlayerMovement>().hit();
-            photonView.RPC("kill", RpcTarget.All);
-        }
     }
+
+
 
     [PunRPC]
     void kill()

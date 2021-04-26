@@ -12,10 +12,4 @@ public class NetworkManager : MonoBehaviour
     {
         PhotonNetwork.Instantiate(playerPrefab.name, new Vector3(22, 5, 60), Quaternion.identity, 0);
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

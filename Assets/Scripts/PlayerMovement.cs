@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using Photon.Pun;
 using UnityEngine;
-using UnityEngine.Serialization;
+
 
 public class PlayerMovement : MonoBehaviourPun, IPunObservable
 {
@@ -104,7 +102,7 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
                 Bomb();
                 break;
             case State.HookshotFlyingPlayer:
-                HandleHookShotMovement();
+                GrapplingMovement();
                 Shoot();
                 Bomb();
                 break;
@@ -133,13 +131,14 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
         {
             if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit raycastHit))
             {
+                debugHitPosition.position = raycastHit.point;
                 hookShotPosition = raycastHit.point;
                 state = State.HookshotFlyingPlayer;
             };
         }
     }
     
-    private void HandleHookShotMovement()
+    private void GrapplingMovement()
     {
         Vector3 direction = (hookShotPosition - transform.position).normalized;
         float speed = Mathf.Clamp(Vector3.Distance(transform.position, hookShotPosition), 10, 40);
@@ -187,7 +186,7 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
 
         if (checkEnvironment(trampoline))
         {
-            Jump(jumpHeight * 2);
+            Jump(jumpHeight * 4);
         }
 
         velocity.y += gravity * Time.deltaTime;
@@ -220,8 +219,17 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
     {
         if (Input.GetKeyDown(KeyCode.Q))
         {
+            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit raycastHit))
+            {
+                if(raycastHit.collider.gameObject.CompareTag("Player"))
+                {
+                    raycastHit.collider.gameObject.GetComponent<PlayerMovement>().hit();
+                }
+            };
+            
             GameObject bullet = PhotonNetwork.Instantiate(bulletPrefab.name, cam.transform.position + cam.transform.forward, Quaternion.identity,0);
-            bullet.GetComponent<Rigidbody>().AddForce(cam.transform.forward * 150, ForceMode.Impulse);
+            bullet.GetComponent<Rigidbody>().AddForce(cam.transform.forward * 35, ForceMode.Impulse);
+            
         }
     }
     
@@ -233,6 +241,29 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
     
     public void hit()
     {
+
+        if (!photonView.IsMine)
+        {
+            photonView.RPC(nameof(attack), RpcTarget.All);
+            return;
+        }
+        
+        
+        health -= 0.2f;
+        if (health <= 0)
+        {
+            health = 0f;
+            
+            manager.Respawn();
+            PhotonNetwork.Destroy(photonView.gameObject);
+        }
+        updateHealthBar();
+    }
+    
+    [PunRPC]
+    void attack()
+    {
+
         if (!photonView.IsMine)
         {
             return;
@@ -241,10 +272,10 @@ public class PlayerMovement : MonoBehaviourPun, IPunObservable
         health -= 0.2f;
         if (health <= 0)
         {
-            manager.Respawn();
-            PhotonNetwork.Destroy(photonView.gameObject);
             health = 0f;
             
+            manager.Respawn();
+            PhotonNetwork.Destroy(photonView.gameObject);
         }
         updateHealthBar();
     }
